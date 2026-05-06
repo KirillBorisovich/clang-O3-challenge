@@ -104,6 +104,7 @@ bool Optimizer::optimizeIR() {
     }
   } else {
     /// TODO: Extend pipeline here (extend \c MPM).
+    MPM.addPass(ModuleInlinerPass());
     FunctionPassManager FPM;
     FPM.addPass(SROAPass(SROAOptions::ModifyCFG));
     FPM.addPass(SimplifyCFGPass());
@@ -112,6 +113,7 @@ bool Optimizer::optimizeIR() {
     FPM.addPass(LCSSAPass());
     FPM.addPass(createFunctionToLoopPassAdaptor(LoopRotatePass()));
     FPM.addPass(createFunctionToLoopPassAdaptor(IndVarSimplifyPass()));
+    FPM.addPass(createFunctionToLoopPassAdaptor(SimpleLoopUnswitchPass()));
     FPM.addPass(createFunctionToLoopPassAdaptor(LICMPass(LICMOptions()), /*UseMemorySSA=*/true));
     FPM.addPass(InstCombinePass());
     FPM.addPass(LoopVectorizePass(LoopVectorizeOptions()));
@@ -120,6 +122,8 @@ bool Optimizer::optimizeIR() {
     FPM.addPass(SinkingPass());
     FPM.addPass(SimplifyCFGPass());
     MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
+    MPM.addPass(VerifierPass());
+    MPM.run(TheModule, MAM);
   }
   MPM.addPass(VerifierPass());
 
