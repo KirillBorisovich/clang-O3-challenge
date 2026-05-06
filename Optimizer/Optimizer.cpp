@@ -106,9 +106,19 @@ bool Optimizer::optimizeIR() {
     /// TODO: Extend pipeline here (extend \c MPM).
     FunctionPassManager FPM;
     FPM.addPass(SROAPass(SROAOptions::ModifyCFG));
+    FPM.addPass(SimplifyCFGPass());
+    FPM.addPass(InstCombinePass());
+    FPM.addPass(LoopSimplifyPass());
+    FPM.addPass(LCSSAPass());
+    FPM.addPass(createFunctionToLoopPassAdaptor(LoopRotatePass()));
+    FPM.addPass(createFunctionToLoopPassAdaptor(IndVarSimplifyPass()));
+    FPM.addPass(createFunctionToLoopPassAdaptor(LICMPass(LICMOptions()), /*UseMemorySSA=*/true));
+    FPM.addPass(InstCombinePass());
+    FPM.addPass(LoopVectorizePass(LoopVectorizeOptions()));
+    FPM.addPass(GVNPass());
     FPM.addPass(InstCombinePass());
     FPM.addPass(SinkingPass());
-
+    FPM.addPass(SimplifyCFGPass());
     MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
   }
   MPM.addPass(VerifierPass());
